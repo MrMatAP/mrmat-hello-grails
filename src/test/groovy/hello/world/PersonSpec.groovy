@@ -15,8 +15,39 @@ class PersonSpec extends Specification {
     def cleanup() {
     }
 
-    void "test something"() {
-        expect:"fix me"
-            true == false
+    void "succeed creating a Person"() {
+
+        when:
+        def p = new Person(name: 'Foo', surname: 'Bar')
+        p.save(flush: true)
+
+        then:
+        def s = Person.findBySurname('Bar')
+        s != null
+        Person.count() == 1
+    }
+
+    void "fail creating a Person without a name"() {
+
+        when:
+        def p = new Person(surname: 'Mat')
+        p.save(flush: true)
+
+        then:
+        def s = Person.findBySurname('Mat')
+        s == null
+        Person.count() == 0
+    }
+
+    void "fail creating a Person without a surname"() {
+
+        when:
+        def p = new Person(name: 'Mr')
+        p.save(flush: true)
+
+        then:
+        def s = Person.findByName('Mr')
+        s == null
+        Person.count() == 0
     }
 }

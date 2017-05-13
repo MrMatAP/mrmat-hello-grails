@@ -10,8 +10,12 @@ buildscript {
     }
 }
 
+plugins {
+    id 'org.sonarqube' version '2.4'
+}
+
+group "org.mrmat"
 version "0.1"
-group "hello.world"
 
 apply plugin:"eclipse"
 apply plugin:"idea"

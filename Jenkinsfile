@@ -3,11 +3,16 @@ node {
     stage('Preparation') {
         gradleHome = tool 'gradle-3.5'
     }
-    stage('Build') {
-      sh "'${gradleHome}/bin/gradle' build"
-    }
-    stage('Results') {
-      junit 'build/test-results/TEST-*.xml'
-      archive '/build/libs/*.war'
+    try {
+        stage('Build') {
+          sh "'${gradleHome}/bin/gradle' build"
+        }
+        stage('QA') {
+            sh "'${gradleHome}/bin/gradle' sonarqube"
+        }
+    } finally {
+        junit '${WORKSPACE}/build/test-results/test/TEST-*.xml'
+        archive '${WORKSPACE}//build/libs/*.war'
+        deleteDir()
     }
 }

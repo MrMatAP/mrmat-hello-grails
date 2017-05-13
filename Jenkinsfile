@@ -1,4 +1,5 @@
 node {
+    checkout scm
     stage('Preparation') {
         gradleHome = tool 'gradle-3.5'
     }
@@ -6,7 +7,7 @@ node {
       sh "'${gradleHome}/bin/gradle' build"
     }
     stage('Results') {
-      junit 'build/test-reports/TEST-*.xml'
-      archive 'build/libs/*.war'
+      junit '${env.WORKSPACE}/build/test-reports/TEST-*.xml'
+      archive '${env.WORKSPACE}/build/libs/*.war'
     }
 }

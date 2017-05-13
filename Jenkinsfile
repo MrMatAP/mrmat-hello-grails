@@ -8,5 +8,5 @@ node {
     stage('Results') {
       junit 'build/test-reports/TEST-*.xml'
       archive 'build/libs/*.war'
-   }
-}}
+    }
+}

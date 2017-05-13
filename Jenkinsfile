@@ -13,13 +13,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "gradle build"
+                sh "./gradlew build"
             }
         }
 
         stage('QA') {
             steps {
-                sh "gradle sonarqube"
+                withSonarQubeEnv {
+                    sh "./gradlew clean sonarqube"
+                }
             }
         }
 

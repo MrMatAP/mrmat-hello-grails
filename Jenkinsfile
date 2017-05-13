@@ -7,7 +7,7 @@ node {
       sh "'${gradleHome}/bin/gradle' build"
     }
     stage('Results') {
-      junit '${env.WORKSPACE}/build/test-reports/TEST-*.xml'
-      archive '${env.WORKSPACE}/build/libs/*.war'
+      junit 'build/test-results/TEST-*.xml'
+      archive '/build/libs/*.war'
     }
 }

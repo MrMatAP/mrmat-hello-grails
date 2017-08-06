@@ -19,7 +19,6 @@ plugins {
 
 group "org.mrmat"
 description = "An example Grails project"
-version "0.1"
 
 apply plugin:"idea"
 apply plugin:"war"

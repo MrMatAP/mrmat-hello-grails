@@ -73,7 +73,7 @@ task buildMetadata() {
         def metadata = JsonOutput.toJson([
                 group: project.group,
                 name: project.name,
-                version: project.version.toString(),    // important to render the dynamic version
+                version: "${project.version}",    // important to render the dynamic version
                 description: project.description
         ])
         (new File("${project.buildDir}/BUILD_METADATA")).write metadata

@@ -1,51 +1,85 @@
-#!/usr/bin/env groovy
-/**
- * A scripted pipeline to build mrmat-hello-grails
- * TODO: Get Gradle from the path, including its environment
- * TODO: SonarQube, with its environment
- */
+#!groovy
 
-try {
+pipeline {
+    agent any
 
-    properties(
-            [[$class: 'BuildDiscarderProperty',
-              strategy: [$class: 'LogRotator', numToKeepStr: '10']]]
-    )
-
-    node {
-        stage '\u2776 Prepare'
-        echo "\u27A1 BUILD_URL=${env.BUILD_URL}"
-        echo "\u27A1 BUILD_CAUSE=${env.BUILD_CAUSE}"
-        echo "\u27A1 WORKSPACE=${env.WORKSPACE}"
-        checkout scm
-
-        stage '\u2776 Build'
-        sh './gradlew clean build'
-
-        stage '\u2776 Test'
-        junit 'build/test-results/**/TEST-*.xml'
-
-        stage '\u2776 Deploy'
-        archiveArtifacts artifacts: 'build/libs/*.war', fingerprint: true
-
-        stage '\u2776 Cleanup'
-        deleteDir()
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
     }
 
-
-} catch(ex) {
-
-    currentBuild.result = 'FAILURE'
-    echo "Caught exception: ${ex.getMessage()}"
-
-} finally {
-
-    (currentBuild.result != 'ABORTED') && node('master') {
-        // Do some stuff on the master node, if required
+    parameters {
+        booleanParam(name: 'RELEASE_BUILD', defaultValue: false, description: 'Will this be a release build then, sir?')
     }
 
-    //
-    // Propagate the error if required
+    tools {
+        gradle 'gradle-3.5'
+        jdk 'jdk-1.8'
+    }
 
-    //if(ex) throw ex
+    stages {
+
+        stage('QA Gate') {
+            steps {
+                slackSend botUser: true, message: "QA Gate Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                withSonarQubeEnv('jenkins-sonar') {
+                    sh "gradle --info sonarqube -Dsonar.branch=${env.BRANCH_NAME}"
+                }
+                /*
+                script {
+                    timeout(time: 1, unit: 'HOURS') {
+                        def qg = waitForQualityGate()
+                        if(qg.status != 'OK') {
+                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                            slackSend botUser: true, message: "QA Gate FAILED - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                        }
+                    }
+                }
+                */
+            }
+        }
+        stage('\uD83D\uDEE0 Build') {
+            when { expression { return ! params.RELEASE_BUILD } }
+            steps {
+                slackSend botUser: true, message: "Build Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                ansiColor('xterm') {
+                    gradleBuild(this, "clean build")
+                }
+                script {
+                    currentBuild.displayName = "${currentBuild.number}: \uD83D\uDEE0 Build ${gradleBuild.version}"
+                }
+            }
+        }
+        stage('\uD83C\uDF81 Release') {
+            when { expression { return (params.RELEASE_BUILD && (env.BRANCH_NAME == 'develop')) } }
+            steps {
+                slackSend botUser: true, message: "Release Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                ansiColor('xterm') {
+                    sh "git checkout -f develop"
+                    gradleBuild(this, "final")
+                    sh "git checkout -f master && git merge develop && git push"
+                }
+                script {
+                    currentBuild.displayName = "${currentBuild.number}: \uD83C\uDF81 Release ${gradleBuild.version}"
+                    keepBuild(true)
+                }
+            }
+        }
+
+    }
+    post {
+        always {
+            junit 'build/test-results/*.xml'
+            archive 'build/libs/mrmat-hello-grails-*.war'
+            deleteDir()
+        }
+        success {
+            echo "Build is a SUCCESS"
+            slackSend botUser: true, message: "Build SUCCESS - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+        }
+        failure {
+            echo "Build is a FAILURE"
+            slackSend botUser: true, message: "Build FAILED - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+        }
+    }
 }

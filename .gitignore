@@ -36,3 +36,4 @@
 .gradle
 .idea
 
+/prodDb.mv.db

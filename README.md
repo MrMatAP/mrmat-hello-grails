@@ -1,2 +1,3 @@
-# mrmat-hello-grails
+# MrMat :: Hello :: Grails
+
 Experiments using Grails
